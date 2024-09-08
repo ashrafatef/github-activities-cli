@@ -15,7 +15,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-type GithubResponse struct {
+type GithubEventsResponse struct {
 	ID      string `json:"id"`
 	Payload struct {
 		Issue struct {
@@ -54,7 +54,8 @@ and usage of using your command. For example:
 Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
-	Run: pullRequests,
+	Run:     pullRequests,
+	Aliases: []string{"pr"},
 }
 
 func pullRequests(cmd *cobra.Command, args []string) {
@@ -92,7 +93,7 @@ func pullRequests(cmd *cobra.Command, args []string) {
 		panic(error)
 	}
 
-	var githubResponses []GithubResponse
+	var githubResponses []GithubEventsResponse
 	_ = json.Unmarshal(body, &githubResponses)
 	var rows []table.Row
 
