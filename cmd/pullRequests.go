@@ -130,15 +130,22 @@ func pullRequests(cmd *cobra.Command, args []string) {
 }
 
 func createPullRequest(cmd *cobra.Command, args []string) {
-	// dir, err := os.Getwd()
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-	// r, err := git.PlainOpen(dir)
-	// h, err := r.Head()
+	dir, err := os.Getwd()
+	if err != nil {
+		log.Fatal(err)
+	}
+	r, err := git.PlainOpen(dir)
+	h, err := r.Head()
 	// currentBranch := h.Name().Short()
-	// b , err :=r.Branch(currentBranch)
-	// b.
+	commit, err := r.CommitObject(h.Hash())
+	fmt.Println(commit)
+	// com, err := r.CommitObjects()
+	// response, err := com.Next()
+	// for response != nil {
+	// 	fmt.Println(response)
+	// 	// Move to the next response (page)
+	// 	response, _ = com.Next()
+	// }
 
 }
 
