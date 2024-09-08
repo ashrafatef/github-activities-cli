@@ -8,9 +8,12 @@ import (
 	"fmt"
 	"githubActivitiesCli/ui"
 	"io"
+	"log"
 	"net/http"
+	"os"
 
 	"github.com/charmbracelet/bubbles/table"
+	"github.com/go-git/go-git/v5"
 	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
 )
@@ -56,6 +59,13 @@ This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run:     pullRequests,
 	Aliases: []string{"pr"},
+}
+
+var createPullRequestCmd = &cobra.Command{
+	Use:     "create",
+	Short:   "create pull request from current branch ",
+	Run:     createPullRequest,
+	Aliases: []string{"c"},
 }
 
 func pullRequests(cmd *cobra.Command, args []string) {
@@ -117,12 +127,24 @@ func pullRequests(cmd *cobra.Command, args []string) {
 	}
 
 	ui.CreateTable(rows, columns)
+}
+
+func createPullRequest(cmd *cobra.Command, args []string) {
+	// dir, err := os.Getwd()
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	// r, err := git.PlainOpen(dir)
+	// h, err := r.Head()
+	// currentBranch := h.Name().Short()
+	// b , err :=r.Branch(currentBranch)
+	// b.
 
 }
 
 func init() {
 	rootCmd.AddCommand(pullRequestsCmd)
-
+	pullRequestsCmd.AddCommand(createPullRequestCmd)
 	// Here you will define your flags and configuration settings.
 
 	// Cobra supports Persistent Flags which will work for this command

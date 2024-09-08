@@ -80,7 +80,7 @@ to quickly create a Cobra application.`,
 		var rows []table.Row
 
 		for _, workflows := range githubResponses.WorkflowRuns {
-			// fmt.Println(workflowName != "" && workflows.Name == workflowName)
+			
 			if !(workflowName != "" && workflows.Name == workflowName) {
 				continue
 			}
