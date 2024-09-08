@@ -4,6 +4,7 @@ Copyright © 2024 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"githubActivitiesCli/ui"
@@ -136,9 +137,58 @@ func createPullRequest(cmd *cobra.Command, args []string) {
 	}
 	r, err := git.PlainOpen(dir)
 	h, err := r.Head()
-	// currentBranch := h.Name().Short()
+	// h, err := r.Log()
+	currentBranch := h.Name().Short()
 	commit, err := r.CommitObject(h.Hash())
 	fmt.Println(commit)
+
+	tokenPrompt := promptui.Prompt{
+		Label: "Token",
+		Mask:  '*',
+	}
+
+	repoPrompt := promptui.Prompt{
+		Label: "Repo",
+	}
+
+	titlePrompt := promptui.Prompt{
+		Label: "title",
+	}
+
+	token, _ := tokenPrompt.Run()
+	repo, _ := repoPrompt.Run()
+	title, _ := titlePrompt.Run()
+
+	marshalled, err := json.Marshal(map[string]interface{}{
+		"title": title,
+		"head":  currentBranch,
+		"base":  "master",
+		"body":  "test",
+	})
+
+	url := "https://api.github.com/repos/join-com/" + repo + "/pulls"
+	authorization := "Bearer " + token
+	client := http.Client{}
+	request, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(marshalled))
+
+	request.Header.Set("Authorization", authorization)
+	request.Header.Set("Content-Type", "application/json")
+
+	res, err := client.Do(request)
+	if err != nil {
+		panic(err)
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode != http.StatusOK {
+		panic(fmt.Errorf("status code error: %d %s", res.StatusCode, res.Status))
+	}
+
+	body, error := io.ReadAll(res.Body)
+	if error != nil {
+		panic(error)
+	}
+	fmt.Println(string(body))
 	// com, err := r.CommitObjects()
 	// response, err := com.Next()
 	// for response != nil {
