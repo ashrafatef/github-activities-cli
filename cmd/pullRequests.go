@@ -139,8 +139,8 @@ func createPullRequest(cmd *cobra.Command, args []string) {
 	h, err := r.Head()
 	// h, err := r.Log()
 	currentBranch := h.Name().Short()
-	commit, err := r.CommitObject(h.Hash())
-	fmt.Println(commit)
+	// commit, err := r.CommitObject(h.Hash())
+	// fmt.Println(commit)
 
 	tokenPrompt := promptui.Prompt{
 		Label: "Token",
@@ -163,10 +163,11 @@ func createPullRequest(cmd *cobra.Command, args []string) {
 		"title": title,
 		"head":  currentBranch,
 		"base":  "master",
-		"body":  "test",
 	})
 
-	url := "https://api.github.com/repos/join-com/" + repo + "/pulls"
+	fmt.Println(marshalled)
+
+	url := "https://api.github.com/repos/ashrafatef/" + repo + "/pulls"
 	authorization := "Bearer " + token
 	client := http.Client{}
 	request, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(marshalled))
