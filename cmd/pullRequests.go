@@ -12,6 +12,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/exec"
 
 	"github.com/charmbracelet/bubbles/table"
 	"github.com/go-git/go-git/v5"
@@ -129,6 +130,12 @@ func pullRequests(cmd *cobra.Command, args []string) {
 
 	ui.CreateTable(rows, columns)
 }
+func runGitCommand(args ...string) error {
+	cmd := exec.Command("git", args...)
+	// cmd.Stdout = os.Stdout
+	// cmd.Stderr = os.Stderr
+	return cmd.Run()
+}
 
 func createPullRequest(cmd *cobra.Command, args []string) {
 	dir, err := os.Getwd()
@@ -142,32 +149,36 @@ func createPullRequest(cmd *cobra.Command, args []string) {
 	// commit, err := r.CommitObject(h.Hash())
 	// fmt.Println(commit)
 
+	err = runGitCommand("push", "-u", "origin", currentBranch)
+	fmt.Println("Branch Pushed :)")
+
 	tokenPrompt := promptui.Prompt{
 		Label: "Token",
 		Mask:  '*',
 	}
 
-	repoPrompt := promptui.Prompt{
-		Label: "Repo",
-	}
+	// repoPrompt := promptui.Prompt{
+	// 	Label: "Repo",
+	// }
 
-	titlePrompt := promptui.Prompt{
-		Label: "title",
-	}
+	// titlePrompt := promptui.Prompt{
+	// 	Label: "title",
+	// }
 
 	token, _ := tokenPrompt.Run()
-	repo, _ := repoPrompt.Run()
-	title, _ := titlePrompt.Run()
+	// repo, _ := repoPrompt.Run()
+	// title, _ := titlePrompt.Run()
 
 	marshalled, err := json.Marshal(map[string]interface{}{
-		"title": title,
-		"head":  currentBranch,
+		"title": "test Pr",
+		"head":  "test_1",
 		"base":  "master",
+		"body":  "pr body",
 	})
 
-	fmt.Println(marshalled)
+	fmt.Println(string(marshalled))
 
-	url := "https://api.github.com/repos/ashrafatef/" + repo + "/pulls"
+	url := "https://api.github.com/repos/ashrafatef/github-activities-cli/pulls"
 	authorization := "Bearer " + token
 	client := http.Client{}
 	request, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(marshalled))
@@ -181,15 +192,15 @@ func createPullRequest(cmd *cobra.Command, args []string) {
 	}
 	defer res.Body.Close()
 
-	if res.StatusCode != http.StatusOK {
-		panic(fmt.Errorf("status code error: %d %s", res.StatusCode, res.Status))
+	_, error := io.ReadAll(res.Body)
+	if res.StatusCode != http.StatusCreated {
+		panic(fmt.Errorf("status code error: %d %s %s", res.StatusCode, res.Status, res))
 	}
 
-	body, error := io.ReadAll(res.Body)
 	if error != nil {
 		panic(error)
 	}
-	fmt.Println(string(body))
+	fmt.Println("PR Created :)")
 	// com, err := r.CommitObjects()
 	// response, err := com.Next()
 	// for response != nil {
