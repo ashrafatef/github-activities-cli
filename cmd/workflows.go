@@ -6,6 +6,7 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
+	"githubActivitiesCli/store"
 	"githubActivitiesCli/ui"
 	"io"
 	"net/http"
@@ -40,20 +41,32 @@ to quickly create a Cobra application.`,
 	Aliases: []string{"wo"},
 	Run: func(cmd *cobra.Command, args []string) {
 		workflowName, _ := cmd.Flags().GetString("name")
-		tokenPrompt := promptui.Prompt{
-			Label: "Token",
-			Mask:  '*',
+		conn := store.InitDB()
+		defer conn.Close()
+
+		token, err := conn.Get([]byte("token"))
+		if err != nil {
+			panic(err)
+		}
+
+		if len(token) == 0 {
+			tokenPrompt := promptui.Prompt{
+				Label: "Token",
+				Mask:  '*',
+			}
+			promptToken, _ := tokenPrompt.Run()
+			conn.Set([]byte("token"), []byte(promptToken), nil)
+			token = []byte(promptToken)
 		}
 
 		repoPrompt := promptui.Prompt{
 			Label: "Repo",
 		}
 
-		token, _ := tokenPrompt.Run()
 		repo, _ := repoPrompt.Run()
 
 		url := "https://api.github.com/repos/join-com/" + repo + "/actions/runs"
-		authorization := "Bearer " + token
+		authorization := "Bearer " + string(token)
 		client := http.Client{}
 		request, _ := http.NewRequest(http.MethodGet, url, nil)
 
@@ -78,7 +91,6 @@ to quickly create a Cobra application.`,
 		var githubResponses GitHubWorkflows
 		_ = json.Unmarshal(body, &githubResponses)
 		var rows []table.Row
-
 		for _, workflows := range githubResponses.WorkflowRuns {
 			
 			if !(workflowName != "" && workflows.Name == workflowName) {
