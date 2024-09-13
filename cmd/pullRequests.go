@@ -4,13 +4,18 @@ Copyright © 2024 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"githubActivitiesCli/ui"
 	"io"
+	"log"
 	"net/http"
+	"os"
+	"os/exec"
 
 	"github.com/charmbracelet/bubbles/table"
+	"github.com/go-git/go-git/v5"
 	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
 )
@@ -56,6 +61,13 @@ This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run:     pullRequests,
 	Aliases: []string{"pr"},
+}
+
+var createPullRequestCmd = &cobra.Command{
+	Use:     "create",
+	Short:   "create pull request from current branch ",
+	Run:     createPullRequest,
+	Aliases: []string{"c"},
 }
 
 func pullRequests(cmd *cobra.Command, args []string) {
@@ -117,12 +129,91 @@ func pullRequests(cmd *cobra.Command, args []string) {
 	}
 
 	ui.CreateTable(rows, columns)
+}
+func runGitCommand(args ...string) error {
+	cmd := exec.Command("git", args...)
+	// cmd.Stdout = os.Stdout
+	// cmd.Stderr = os.Stderr
+	return cmd.Run()
+}
+
+func createPullRequest(cmd *cobra.Command, args []string) {
+	dir, err := os.Getwd()
+	if err != nil {
+		log.Fatal(err)
+	}
+	r, err := git.PlainOpen(dir)
+	h, err := r.Head()
+	// h, err := r.Log()
+	currentBranch := h.Name().Short()
+	// commit, err := r.CommitObject(h.Hash())
+	// fmt.Println(commit)
+
+	err = runGitCommand("push", "-u", "origin", currentBranch)
+	fmt.Println("Branch Pushed :)")
+
+	tokenPrompt := promptui.Prompt{
+		Label: "Token",
+		Mask:  '*',
+	}
+
+	// repoPrompt := promptui.Prompt{
+	// 	Label: "Repo",
+	// }
+
+	// titlePrompt := promptui.Prompt{
+	// 	Label: "title",
+	// }
+
+	token, _ := tokenPrompt.Run()
+	// repo, _ := repoPrompt.Run()
+	// title, _ := titlePrompt.Run()
+
+	marshalled, err := json.Marshal(map[string]interface{}{
+		"title": "test Pr",
+		"head":  "test_1",
+		"base":  "master",
+		"body":  "pr body",
+	})
+
+	fmt.Println(string(marshalled))
+
+	url := "https://api.github.com/repos/ashrafatef/github-activities-cli/pulls"
+	authorization := "Bearer " + token
+	client := http.Client{}
+	request, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(marshalled))
+
+	request.Header.Set("Authorization", authorization)
+	request.Header.Set("Content-Type", "application/json")
+
+	res, err := client.Do(request)
+	if err != nil {
+		panic(err)
+	}
+	defer res.Body.Close()
+
+	_, error := io.ReadAll(res.Body)
+	if res.StatusCode != http.StatusCreated {
+		panic(fmt.Errorf("status code error: %d %s %s", res.StatusCode, res.Status, res))
+	}
+
+	if error != nil {
+		panic(error)
+	}
+	fmt.Println("PR Created :)")
+	// com, err := r.CommitObjects()
+	// response, err := com.Next()
+	// for response != nil {
+	// 	fmt.Println(response)
+	// 	// Move to the next response (page)
+	// 	response, _ = com.Next()
+	// }
 
 }
 
 func init() {
 	rootCmd.AddCommand(pullRequestsCmd)
-
+	pullRequestsCmd.AddCommand(createPullRequestCmd)
 	// Here you will define your flags and configuration settings.
 
 	// Cobra supports Persistent Flags which will work for this command
