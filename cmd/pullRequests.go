@@ -135,8 +135,6 @@ func pullRequests(cmd *cobra.Command, args []string) {
 }
 func runGitCommand(args ...string) error {
 	cmd := exec.Command("git", args...)
-	// cmd.Stdout = os.Stdout
-	// cmd.Stderr = os.Stderr
 	return cmd.Run()
 }
 
