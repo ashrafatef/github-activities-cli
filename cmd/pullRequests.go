@@ -181,16 +181,10 @@ func createPullRequest(cmd *cobra.Command, args []string) {
 		token = promptToken
 	}
 
-	// repoPrompt := promptui.Prompt{
-	// 	Label: "Repo",
-	// }
-
 	titlePrompt := promptui.Prompt{
 		Label: "title",
 	}
 
-	// token, _ := tokenPrompt.Run()
-	// repo, _ := repoPrompt.Run()
 	title, _ := titlePrompt.Run()
 	prType := getPrType(cmd)
 	path, err := os.Getwd()
@@ -238,14 +232,7 @@ func createPullRequest(cmd *cobra.Command, args []string) {
 	if error != nil {
 		panic(error)
 	}
-	fmt.Println("PR Created :)")
-	// com, err := r.CommitObjects()
-	// response, err := com.Next()
-	// for response != nil {
-	// 	fmt.Println(response)
-	// 	// Move to the next response (page)
-	// 	response, _ = com.Next()
-	// }
+	fmt.Println(logsymbols.Success, "PR Created")
 
 }
 
