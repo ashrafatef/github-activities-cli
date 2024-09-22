@@ -6,7 +6,7 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
-	"githubActivitiesCli/store"
+	"githubActivitiesCli/database"
 	"githubActivitiesCli/ui"
 	"io"
 	"net/http"
@@ -41,10 +41,8 @@ to quickly create a Cobra application.`,
 	Aliases: []string{"wo"},
 	Run: func(cmd *cobra.Command, args []string) {
 		workflowName, _ := cmd.Flags().GetString("name")
-		conn := store.InitDB()
-		defer conn.Close()
 
-		token, err := conn.Get([]byte("token"))
+		token, err := database.GetToken()
 		if err != nil {
 			panic(err)
 		}
@@ -55,14 +53,13 @@ to quickly create a Cobra application.`,
 				Mask:  '*',
 			}
 			promptToken, _ := tokenPrompt.Run()
-			conn.Set([]byte("token"), []byte(promptToken), nil)
-			token = []byte(promptToken)
+			database.AddToken(promptToken)
+			token = promptToken
 		}
 
 		repoPrompt := promptui.Prompt{
 			Label: "Repo",
 		}
-
 		repo, _ := repoPrompt.Run()
 
 		url := "https://api.github.com/repos/join-com/" + repo + "/actions/runs"
@@ -92,7 +89,7 @@ to quickly create a Cobra application.`,
 		_ = json.Unmarshal(body, &githubResponses)
 		var rows []table.Row
 		for _, workflows := range githubResponses.WorkflowRuns {
-			
+
 			if !(workflowName != "" && workflows.Name == workflowName) {
 				continue
 			}

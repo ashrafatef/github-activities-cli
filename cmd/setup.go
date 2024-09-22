@@ -4,9 +4,10 @@ Copyright © 2024 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
-	"githubActivitiesCli/store"
-	"log"
+	"fmt"
+	"githubActivitiesCli/database"
 
+	"github.com/guumaster/logsymbols"
 	"github.com/spf13/cobra"
 )
 
@@ -22,16 +23,19 @@ This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		token, _ := cmd.Flags().GetString("token")
-		conn := store.InitDB()
-		conn.Set([]byte("token"), []byte(token), nil)
-		log.Default().Println("setup complete")
-		defer conn.Close()
+		database.DeleteToken()
+		if len(token) == 0 {
+			fmt.Println(logsymbols.Error, "Token is missing")
+			return
+		}
+		database.AddToken(token)
+		fmt.Println(logsymbols.Success, "setup completed")
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(setupCmd)
-	setupCmd.PersistentFlags().String("token", "t", "enter token")
+	setupCmd.PersistentFlags().String("token", "", "enter token")
 
 	// Here you will define your flags and configuration settings.
 
