@@ -7,15 +7,18 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"githubActivitiesCli/database"
 	"githubActivitiesCli/ui"
 	"io"
 	"log"
 	"net/http"
 	"os"
 	"os/exec"
+	"strings"
 
 	"github.com/charmbracelet/bubbles/table"
 	"github.com/go-git/go-git/v5"
+	"github.com/guumaster/logsymbols"
 	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
 )
@@ -132,12 +135,10 @@ func pullRequests(cmd *cobra.Command, args []string) {
 }
 func runGitCommand(args ...string) error {
 	cmd := exec.Command("git", args...)
-	// cmd.Stdout = os.Stdout
-	// cmd.Stderr = os.Stderr
 	return cmd.Run()
 }
 
-func createPullRequest(cmd *cobra.Command, args []string) {
+func getCurrentBranchName() string {
 	dir, err := os.Getwd()
 	if err != nil {
 		log.Fatal(err)
@@ -148,37 +149,68 @@ func createPullRequest(cmd *cobra.Command, args []string) {
 	currentBranch := h.Name().Short()
 	// commit, err := r.CommitObject(h.Hash())
 	// fmt.Println(commit)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return currentBranch
+}
 
-	err = runGitCommand("push", "-u", "origin", currentBranch)
-	fmt.Println("Branch Pushed :)")
+func createPullRequest(cmd *cobra.Command, args []string) {
 
-	tokenPrompt := promptui.Prompt{
-		Label: "Token",
-		Mask:  '*',
+	currentBranch := getCurrentBranchName()
+
+	err := runGitCommand("push", "-u", "origin", currentBranch)
+	if err != nil {
+		fmt.Println(logsymbols.Error, "Push branch failed")
+		panic(err)
+	}
+	fmt.Println(logsymbols.Success, "Branch Pushed")
+
+	token, err := database.GetToken()
+	if err != nil {
+		panic(err)
 	}
 
-	// repoPrompt := promptui.Prompt{
-	// 	Label: "Repo",
-	// }
+	if len(token) == 0 {
+		tokenPrompt := promptui.Prompt{
+			Label: "Token",
+			Mask:  '*',
+		}
+		promptToken, _ := tokenPrompt.Run()
+		database.AddToken(promptToken)
+		token = promptToken
+	}
 
-	// titlePrompt := promptui.Prompt{
-	// 	Label: "title",
-	// }
+	titlePrompt := promptui.Prompt{
+		Label: "title",
+	}
 
-	token, _ := tokenPrompt.Run()
-	// repo, _ := repoPrompt.Run()
-	// title, _ := titlePrompt.Run()
+	title, _ := titlePrompt.Run()
+	prType := getPrType(cmd)
+	path, err := os.Getwd()
+	if err != nil {
+		fmt.Println(err)
+	}
+	repo := path[strings.LastIndex(path, "/")+1:]
+
+	var prTitle string
+
+	if prType == "TECH" {
+		prTitle = "feat: " + "TECH" + title + " " + title
+	} else {
+		prTitle = prType + ": " + currentBranch + " " + title
+	}
 
 	marshalled, err := json.Marshal(map[string]interface{}{
-		"title": "test Pr",
-		"head":  "test_1",
+		"title": prTitle,
+		"head":  currentBranch,
 		"base":  "master",
-		"body":  "pr body",
+		"body":  "",
 	})
 
 	fmt.Println(string(marshalled))
 
-	url := "https://api.github.com/repos/ashrafatef/github-activities-cli/pulls"
+	url := "https://api.github.com/repos/ashrafatef/" + repo + "/pulls"
 	authorization := "Bearer " + token
 	client := http.Client{}
 	request, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(marshalled))
@@ -200,20 +232,34 @@ func createPullRequest(cmd *cobra.Command, args []string) {
 	if error != nil {
 		panic(error)
 	}
-	fmt.Println("PR Created :)")
-	// com, err := r.CommitObjects()
-	// response, err := com.Next()
-	// for response != nil {
-	// 	fmt.Println(response)
-	// 	// Move to the next response (page)
-	// 	response, _ = com.Next()
-	// }
+	fmt.Println(logsymbols.Success, "PR Created")
 
+}
+
+func getPrType(cmd *cobra.Command) string {
+	ft, _ := cmd.Flags().GetBool("ft")
+	fi, _ := cmd.Flags().GetBool("fi")
+	t, _ := cmd.Flags().GetBool("t")
+
+	if ft {
+		return "feat"
+	}
+	if fi {
+		return "fix"
+	}
+	if t {
+		return "TECH"
+	}
+	panic("Please Provide pr type -ft for feat and -fi for fix and -t for TECH")
 }
 
 func init() {
 	rootCmd.AddCommand(pullRequestsCmd)
 	pullRequestsCmd.AddCommand(createPullRequestCmd)
+	createPullRequestCmd.Flags().Bool("ft", false, "create feat PR")
+	createPullRequestCmd.Flags().Bool("fi", false, "create fix PR")
+	createPullRequestCmd.Flags().Bool("t", false, "create TECH PR")
+
 	// Here you will define your flags and configuration settings.
 
 	// Cobra supports Persistent Flags which will work for this command
